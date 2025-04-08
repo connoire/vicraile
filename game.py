@@ -1,7 +1,9 @@
 import pandas as pd
+from geographiclib.geodesic import Geodesic
 
-def compare(mystery, guess, df):
+def compare(guess, mystery, df):
 
+    # first guess
     if not guess:
         return
 
@@ -13,8 +15,34 @@ def compare(mystery, guess, df):
         guess = df[df['Name'] == guess].to_dict(orient = 'records')[0]
 
         # distance/direction
+        geo = Geodesic.WGS84.Inverse(guess['Lat'], guess['Long'], mystery['Lat'], mystery['Long'])
+        dist = round(geo['s12'] / 1000, 1)
+        dire = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'][round(geo['azi1'] / 45) % 8]
         
+        # patronage
+        if guess['Patronage'] > mystery['Patronage']:
+            patronage = '⬇️'
+        elif guess['Patronage'] < mystery['Patronage']:
+            patronage = '⬆️'
+        else:
+            patronage = '🟩'
 
+        # type
+        if guess['Type'] == mystery['Type']:
+            typ = '🟩'
+        else:
+            typ = '🟥'
+
+        # line
+        if set(guess['Line']) & set(mystery['Line']):
+            line = '🟩'
+        elif set(guess['Group']) & set(mystery['Group']):
+            line = '🟨'
+        else:
+            line = '🟥'
+
+        # print comparison
+        print(f'Name: {guess['Name']}    Distance: {dist} {dire}    Patronage: {guess['Patronage']} {patronage}    Type: {guess['Type']} {typ}    Line: {line}')
 
         return False
 
@@ -30,7 +58,7 @@ def play():
     attempts = 0
 
     # keep guessing unti mystery is guessed
-    while not compare(mystery, guess, df):
+    while not compare(guess, mystery, df):
 
         # check if guess is a station
         while True:
