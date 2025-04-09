@@ -1,5 +1,6 @@
 import pandas as pd
 from geographiclib.geodesic import Geodesic
+import datetime
 
 def compare(guess, mystery, df):
 
@@ -14,7 +15,7 @@ def compare(guess, mystery, df):
     else:
         guess = df[df['Name'] == guess].to_dict(orient = 'records')[0]
 
-        # distance/direction
+        # distance and direction
         geo = Geodesic.WGS84.Inverse(guess['Lat'], guess['Long'], mystery['Lat'], mystery['Long'])
         dist = round(geo['s12'] / 1000, 1)
         dire = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'][round(geo['azi1'] / 45) % 8]
@@ -42,36 +43,46 @@ def compare(guess, mystery, df):
             line = '🟥'
 
         # print comparison
-        print(f'Name: {guess['Name']}    Distance: {dist} {dire}    Patronage: {guess['Patronage']} {patronage}    Type: {guess['Type']} {typ}    Line: {line}')
+        print(f"Name: {guess['Name']}\t\tDistance: {dist}km {dire}\t\tPatronage: {guess['Patronage']:,.0f} {patronage}\t\tType: {guess['Type']} {typ}\t\tLine: {line}")
 
         return False
 
-def play():
+def play(mode):
 
     # read data
     df = pd.read_parquet('stationdata.parquet')
 
     # pick mystery station
-    mystery = df.sample(1).to_dict(orient = 'records')[0]
+    if mode == 'random':
+        mystery = df.sample(1).to_dict(orient = 'records')[0]
+    
+    elif mode == 'daily':
+        seed = int(str(datetime.date.today()).replace('-', ''))
+        mystery = df.sample(1, random_state = seed).to_dict(orient = 'records')[0]
 
     guess = None
-    attempts = 0
+    guesses = []
 
     # keep guessing unti mystery is guessed
     while not compare(guess, mystery, df):
 
-        # check if guess is a station
         while True:
             guess = input('Guess: ')
 
+            # check if guess is a station
             if guess not in list(df['Name']):
                 print(f'{guess} is not a valid Victorian railway station')
 
+            # check if guess is not already guessed
+            elif guess in guesses:
+                print('You have already guessed this station')
+
+            # valid guess
             else:
-                attempts += 1
+                guesses.append(guess)
                 break
 
     # correct guess
-    print(f'You got the correct station {guess} in {attempts} guesses!')
+    print(f'You got the correct station {guess} in {len(guesses)} guesses!')
 
-play()
+play('daily')
