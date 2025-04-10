@@ -2,15 +2,15 @@ import pandas as pd
 from geographiclib.geodesic import Geodesic
 import datetime
 
-def compare(guess, mystery, df):
+import pygame
+import sys
 
-    # first guess
-    if not guess:
-        return
+def compare(guess, mystery, df, guesses):
 
     # correct guess
     if mystery['Name'] == guess:
-        return True
+        msg = f'You got the correct station {guess} in {len(guesses)} guesses!'
+        return msg, True
     
     else:
         guess = df[df['Name'] == guess].to_dict(orient = 'records')[0]
@@ -43,46 +43,89 @@ def compare(guess, mystery, df):
             line = '🟥'
 
         # print comparison
-        print(f"Name: {guess['Name']}\t\tDistance: {dist}km {dire}\t\tPatronage: {guess['Patronage']:,.0f} {patronage}\t\tType: {guess['Type']} {typ}\t\tLine: {line}")
+        msg = f"{guess['Name']} | Distance: {dist}km {dire} | Patronage: {guess['Patronage']:,.0f} {patronage} | Type: {guess['Type']} {typ} | Line: {line}"
 
-        return False
+        return msg, False
 
-def play(mode):
+# initialise game
+pygame.init()
+pygame.key.set_repeat(300, 30)
+font = pygame.font.SysFont('segoeuiemoji', 16)
 
-    # read data
-    df = pd.read_parquet('stationdata.parquet')
+# setup display
+width, height = 1000, 800
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption('VicRaile')
+pygame.display.update()
 
-    # pick mystery station
-    if mode == 'random':
-        mystery = df.sample(1).to_dict(orient = 'records')[0]
-    
-    elif mode == 'daily':
-        seed = int(str(datetime.date.today()).replace('-', ''))
-        mystery = df.sample(1, random_state = seed).to_dict(orient = 'records')[0]
+# read data
+df = pd.read_parquet('stationdata.parquet')
 
-    guess = None
-    guesses = []
+# pick mystery station
+seed = int(str(datetime.date.today()).replace('-', ''))
+mystery = df.sample(1, random_state = seed).to_dict(orient = 'records')[0]
 
-    # keep guessing unti mystery is guessed
-    while not compare(guess, mystery, df):
+# game state
+inputtext = ''
+guesses = []
+outputtext = []
+running = True
+completed = False
 
-        while True:
-            guess = input('Guess: ')
+# gameplay loop
+while running:
+    screen.fill((52, 52, 52))
 
-            # check if guess is a station
-            if guess not in list(df['Name']):
-                print(f'{guess} is not a valid Victorian railway station')
+    for event in pygame.event.get():
 
-            # check if guess is not already guessed
-            elif guess in guesses:
-                print('You have already guessed this station')
+        # quit game
+        if event.type == pygame.QUIT:
+            running = False
 
-            # valid guess
+        # keyboard input
+        elif event.type == pygame.KEYDOWN and not completed:
+
+            # enter to make guess
+            if event.key == pygame.K_RETURN:
+                
+                # check if guess is a station
+                if inputtext not in list(df['Name']):
+                    outputtext.append(f'{inputtext} is not a valid Victorian railway station')
+
+                # check if guess is not already guessed
+                elif inputtext in guesses:
+                    outputtext.append('You have already guessed this station')
+                
+                # valid guess
+                else:
+                    guesses.append(inputtext)
+                    msg, result = compare(inputtext, mystery, df, guesses)
+                    outputtext.append(msg)
+
+                    # check for correct guess
+                    if result:
+                        completed = True
+                
+                # reset input text
+                inputtext = ''
+
+            # backspace
+            elif event.key == pygame.K_BACKSPACE:
+                inputtext = inputtext[:-1]
+
+            # alphabetic key adds to input
             else:
-                guesses.append(guess)
-                break
+                inputtext += event.unicode
+    
+    # render input box
+    inputbox = font.render(f'Guess Station: {inputtext}', True, (255, 255, 255))
+    screen.blit(inputbox, (30, 20))
 
-    # correct guess
-    print(f'You got the correct station {guess} in {len(guesses)} guesses!')
+    # render output
+    for i, line in enumerate(outputtext):
+        output_surface = font.render(line, True, (255, 255, 255))
+        screen.blit(output_surface, (30, 60 + i * 40))
 
-play('daily')
+    pygame.display.flip()
+
+pygame.quit()
