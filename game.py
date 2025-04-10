@@ -5,11 +5,17 @@ import datetime
 import pygame
 import sys
 
+# function to compare two guesses
 def compare(guess, mystery, df, guesses):
 
     # correct guess
     if mystery['Name'] == guess:
-        msg = f'You got the correct station {guess} in {len(guesses)} guesses!'
+
+        if len(guesses) == 1:
+            msg = f'You got the correct station {guess} in 1 guess! Cheating?'
+        else:
+            msg = f'You got the correct station {guess} in {len(guesses)} guesses!'
+
         return msg, True
     
     else:
@@ -22,9 +28,9 @@ def compare(guess, mystery, df, guesses):
         
         # patronage
         if guess['Patronage'] > mystery['Patronage']:
-            patronage = '⬇️'
+            patronage = '🔻'
         elif guess['Patronage'] < mystery['Patronage']:
-            patronage = '⬆️'
+            patronage = '🔺'
         else:
             patronage = '🟩'
 
@@ -43,37 +49,60 @@ def compare(guess, mystery, df, guesses):
             line = '🟥'
 
         # print comparison
-        msg = f"Guess: {guess['Name']} | Distance: {dist}km {dire} | Patronage: {guess['Patronage']:,.0f} {patronage} | Type: {guess['Type']} {typ} | Line: {line}"
+        msg = f"{guess['Name']}|{dist}km|{dire}|{guess['Patronage']:,.0f}|{patronage}|{guess['Type']}|{typ}|{line}"
 
         return msg, False
 
 # initialise game
 pygame.init()
 pygame.key.set_repeat(300, 30)
-font = pygame.font.SysFont('segoeuiemoji', 16)
 
 # setup display
-width, height = 1000, 800
+width, height = 650, 1000
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('VicRaile')
 pygame.display.update()
+
+# set fonts
+titlefont = pygame.font.SysFont('segoeuiemoji', 36)
+mainfont = pygame.font.SysFont('segoeuiemoji', 16)
 
 # read data
 df = pd.read_parquet('stationdata.parquet')
 
 # pick mystery station
 seed = int(str(datetime.date.today()).replace('-', ''))
-mystery = df.sample(1, random_state = seed).to_dict(orient = 'records')[0]
+mystery = df.sample(1).to_dict(orient = 'records')[0]
 
-# game state
+# initialise game states
 inputtext = ''
 guesses = []
 outputtext = []
 completed = False
+popupmsg = None
+popuptimer = 0
+cols = ['Guess', 'Distance', 'Patronage', 'Type', 'Line']
+pos = [30]
+for w in [160, 120, 120, 120, 60][:-1]:
+    pos.append(pos[-1] + w + 10)
 
 # gameplay loop
 while True:
+
     screen.fill((52, 52, 52))
+
+    # header
+    pygame.draw.rect(screen, (40, 40, 40), (0, 0, width, 110))
+    titlesurface = titlefont.render('VicRaile', True, (255, 255, 255))
+    titlerect = titlesurface.get_rect(center = (width // 2, 40))
+    screen.blit(titlesurface, titlerect)
+    subtitlesurface = mainfont.render('Guess the Mystery Victorian Railway Station', True, (255, 255, 255))
+    subtitlerect = subtitlesurface.get_rect(center = (width // 2, 85))
+    screen.blit(subtitlesurface, subtitlerect)
+    metrotrain = pygame.transform.scale(pygame.image.load('metrotrain.png'), (80, 80))
+    screen.blit(metrotrain, (40, 15))
+    vlinetrain = pygame.transform.scale(pygame.image.load('vlinetrain.png'), (80, 80))
+    screen.blit(vlinetrain, (530, 15))
 
     for event in pygame.event.get():
 
@@ -90,11 +119,13 @@ while True:
                 
                 # check if guess is a station
                 if inputtext not in list(df['Name']):
-                    outputtext.append(f'{inputtext} is not a valid Victorian railway station')
+                    popupmsg = f'{inputtext} is not a valid Victorian Railway Station'
+                    popuptimer = pygame.time.get_ticks() + 2000
 
                 # check if guess is not already guessed
                 elif inputtext in guesses:
-                    outputtext.append('You have already guessed this station')
+                    popupmsg = 'You have already guessed this station'
+                    popuptimer = pygame.time.get_ticks() + 2000
                 
                 # valid guess
                 else:
@@ -113,17 +144,64 @@ while True:
             elif event.key == pygame.K_BACKSPACE:
                 inputtext = inputtext[:-1]
 
-            # alphabetic key adds to input
+            # other keys add to input
             else:
                 inputtext += event.unicode
-    
-    # render input box
-    inputbox = font.render(f'Guess: {inputtext}', True, (255, 255, 255))
-    screen.blit(inputbox, (30, 20))
 
-    # render output
+    # render input box
+    pygame.draw.rect(screen, (70, 70, 70), (20, 130, 610, 35), border_radius = 5)
+    inputsurface = mainfont.render(f'Guess: {inputtext}', True, (255, 255, 255))
+    screen.blit(inputsurface, (30, 140))
+
+    # popup for error inputs
+    if popupmsg and pygame.time.get_ticks() < popuptimer:
+        popupsurface = mainfont.render(popupmsg, True, (255, 80, 80))
+        screen.blit(popupsurface, ((width // 2) - popupsurface.get_width() // 2, 140))
+
+    # render output table header
+    if outputtext and '|' in outputtext[0]:
+        for i, col in enumerate(cols):
+            tableheader = mainfont.render(col, True, (200, 200, 200))
+            screen.blit(tableheader, (pos[i], 190))
+        pygame.draw.line(screen, (100, 100, 100), (30, 210), (620, 210), 1)
+
+    # render output table lines
     for i, line in enumerate(outputtext):
-        output_surface = font.render(line, True, (255, 255, 255))
-        screen.blit(output_surface, (30, 60 + i * 30))
+        h = 220 + i * 35
+
+        # wrong guess information
+        if '|' in line:
+            split = line.split('|')
+            name = split[0]
+            distance = split[1]
+            direction = split[2]
+            patronage = split[3]
+            patronageemoji = split[4]
+            typ = split[5]
+            typemoji = split[6]
+            line = split[7]
+
+            # name
+            screen.blit(mainfont.render(name, True, (255, 255, 255)), (pos[0], h))
+
+            # distance/direction
+            screen.blit(mainfont.render(distance.strip(), True, (255, 255, 255)), (pos[1], h))
+            screen.blit(mainfont.render(direction.strip(), True, (255, 255, 255)), (pos[1] + 70, h))
+
+            # patronage
+            screen.blit(mainfont.render(patronage.strip(), True, (255, 255, 255)), (pos[2], h))
+            screen.blit(mainfont.render(patronageemoji.strip(), True, (255, 255, 255)), (pos[2] + 90, h))
+
+            # type
+            screen.blit(mainfont.render(typ.strip(), True, (255, 255, 255)), (pos[3], h))
+            screen.blit(mainfont.render(typemoji.strip(), True, (255, 255, 255)), (pos[3] + 90, h))
+
+            # line
+            screen.blit(mainfont.render(line.strip(), True, (255, 255, 255)), (pos[4] + 5, h))
+
+        # win message
+        else:
+            victorysurface = mainfont.render(line, True, (100, 255, 100))
+            screen.blit(victorysurface, ((width // 2) - victorysurface.get_width() // 2, h))
 
     pygame.display.flip()
