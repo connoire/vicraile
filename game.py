@@ -43,7 +43,7 @@ def compare(guess, mystery, df, guesses):
             line = '🟥'
 
         # print comparison
-        msg = f"{guess['Name']} | Distance: {dist}km {dire} | Patronage: {guess['Patronage']:,.0f} {patronage} | Type: {guess['Type']} {typ} | Line: {line}"
+        msg = f"Guess: {guess['Name']} | Distance: {dist}km {dire} | Patronage: {guess['Patronage']:,.0f} {patronage} | Type: {guess['Type']} {typ} | Line: {line}"
 
         return msg, False
 
@@ -69,18 +69,18 @@ mystery = df.sample(1, random_state = seed).to_dict(orient = 'records')[0]
 inputtext = ''
 guesses = []
 outputtext = []
-running = True
 completed = False
 
 # gameplay loop
-while running:
+while True:
     screen.fill((52, 52, 52))
 
     for event in pygame.event.get():
 
         # quit game
         if event.type == pygame.QUIT:
-            running = False
+            pygame.quit()
+            sys.exit()
 
         # keyboard input
         elif event.type == pygame.KEYDOWN and not completed:
@@ -118,14 +118,12 @@ while running:
                 inputtext += event.unicode
     
     # render input box
-    inputbox = font.render(f'Guess Station: {inputtext}', True, (255, 255, 255))
+    inputbox = font.render(f'Guess: {inputtext}', True, (255, 255, 255))
     screen.blit(inputbox, (30, 20))
 
     # render output
     for i, line in enumerate(outputtext):
         output_surface = font.render(line, True, (255, 255, 255))
-        screen.blit(output_surface, (30, 60 + i * 40))
+        screen.blit(output_surface, (30, 60 + i * 30))
 
     pygame.display.flip()
-
-pygame.quit()
