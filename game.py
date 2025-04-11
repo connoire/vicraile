@@ -63,7 +63,7 @@ pygame.display.set_caption('VicRaile')
 pygame.display.update()
 
 # set fonts
-titlefont = pygame.font.SysFont('segoeuiemoji', 36)
+titlefont = pygame.font.SysFont('script', 40)
 mainfont = pygame.font.SysFont('segoeuiemoji', 16)
 pygame.key.set_repeat(500, 30)
 
@@ -88,27 +88,15 @@ cols = ['Guess', 'Distance', 'Patronage', 'Type', 'Line']
 pos = [30]
 for w in [160, 120, 120, 120, 60][:-1]:
     pos.append(pos[-1] + w + 10)
+enterbutton = None
+enterbuttonpressed = False
 copybutton = None
 copybuttonpressed = False
 
 # gameplay loop
 while True:
 
-    screen.fill((52, 52, 52))
-
-    # header
-    pygame.draw.rect(screen, (40, 40, 40), (0, 0, width, 110))
-    titlesurface = titlefont.render('VicRaile', True, (255, 255, 255))
-    titlerect = titlesurface.get_rect(center = (width // 2, 40))
-    screen.blit(titlesurface, titlerect)
-    subtitlesurface = mainfont.render('Guess the Mystery Victorian Railway Station', True, (255, 255, 255))
-    subtitlerect = subtitlesurface.get_rect(center = (width // 2, 85))
-    screen.blit(subtitlesurface, subtitlerect)
-    metrotrain = pygame.transform.scale(pygame.image.load('metrotrain.png'), (80, 80))
-    screen.blit(metrotrain, (40, 15))
-    vlinetrain = pygame.transform.scale(pygame.image.load('vlinetrain.png'), (80, 80))
-    screen.blit(vlinetrain, (530, 15))
-
+    # input detection
     for event in pygame.event.get():
 
         # downclick
@@ -124,6 +112,11 @@ while True:
             if completed and copybutton and copybutton.collidepoint(event.pos):
                 copybuttonpressed = True
 
+            # enter button
+            if enterbutton.collidepoint(event.pos):
+                pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_RETURN}))
+                enterbuttonpressed = True
+
         # upclick
         elif event.type == pygame.MOUSEBUTTONUP:
             
@@ -132,14 +125,17 @@ while True:
 
                 # create text
                 if len(guesses) == 1:
-                    text = f'🚇 VicRaile {datetime.date.today().strftime("%d/%m/%y")} 🚇\nI found the mystery station in 1 guess!\nhttp://upcomingwebsiteurl.yippee/'
+                    text = f'🚇 VicRaile {datetime.date.today().strftime("%d/%m/%y")} 🚇\nI found the mystery station in 1 guess! 🎉🎉🎉\nhttp://upcomingwebsiteurl.yippee/'
                 else:
-                    text = f'🚇 VicRaile {datetime.date.today().strftime("%d/%m/%y")} 🚇\nI found the mystery station in {len(guesses)} guesses!\nhttp://upcomingwebsiteurl.yippee/'
+                    text = f'🚇 VicRaile {datetime.date.today().strftime("%d/%m/%y")} 🚇\nI found the mystery station in {len(guesses)} guesses! 🎉🎉🎉\nhttp://upcomingwebsiteurl.yippee/'
 
                 # add to clipboard
                 pyperclip.copy(text)
             
             copybuttonpressed = False
+            
+            # enter button
+            enterbuttonpressed = False
 
         # quit game
         elif event.type == pygame.QUIT:
@@ -151,29 +147,32 @@ while True:
 
             # enter to make guess
             if event.key == pygame.K_RETURN:
+                    
+                # blank input
+                if inputtext != '':
                 
-                # check if guess is a station
-                if inputtext not in list(df['Name']):
-                    popupmsg = f'{inputtext} is not a valid Victorian Railway Station'
-                    popuptimer = pygame.time.get_ticks() + 2000
+                    # check if guess is a station
+                    if inputtext not in list(df['Name']):
+                        popupmsg = f'{inputtext} is not a valid Victorian Railway Station'
+                        popuptimer = pygame.time.get_ticks() + 2000
 
-                # check if guess is not already guessed
-                elif inputtext in guesses:
-                    popupmsg = 'You have already guessed this station'
-                    popuptimer = pygame.time.get_ticks() + 2000
-                
-                # valid guess
-                else:
-                    guesses.append(inputtext)
-                    msg, result = compare(inputtext, mystery, df, guesses)
-                    outputtext.append(msg)
+                    # check if guess is not already guessed
+                    elif inputtext in guesses:
+                        popupmsg = 'You have already guessed this station'
+                        popuptimer = pygame.time.get_ticks() + 2000
+                    
+                    # valid guess
+                    else:
+                        guesses.append(inputtext)
+                        msg, result = compare(inputtext, mystery, df, guesses)
+                        outputtext.append(msg)
 
-                    # check for correct guess
-                    if result:
-                        completed = True
-                
-                # reset input text
-                inputtext = ''
+                        # check for correct guess
+                        if result:
+                            completed = True
+                    
+                    # reset input text
+                    inputtext = ''
 
             # backspace
             elif event.key == pygame.K_BACKSPACE:
@@ -183,14 +182,44 @@ while True:
             else:
                 inputtext += event.unicode
 
-    # render input box
-    pygame.draw.rect(screen, (70, 70, 70), (20, 130, 610, 35), border_radius = 5)
-    inputsurface = mainfont.render(f'Guess: {inputtext}', True, (255, 255, 255))
-    screen.blit(inputsurface, (30, 141))
+    # visuals
+    screen.fill((52, 52, 52))
 
-    # blinking cursor
-    if inputactive and cursorvisible and not completed:
-        pygame.draw.line(screen, (255, 255, 255), (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
+    # header
+    pygame.draw.rect(screen, (40, 40, 40), (0, 0, width, 110))
+    titlesurface = titlefont.render('VicRaile', True, (255, 255, 255))
+    titlerect = titlesurface.get_rect(center = (width // 2, 40))
+    screen.blit(titlesurface, titlerect)
+    subtitlesurface = mainfont.render('Guess the Mystery Victorian Railway Station', True, (255, 255, 255))
+    subtitlerect = subtitlesurface.get_rect(center = (width // 2, 85))
+    screen.blit(subtitlesurface, subtitlerect)
+    metrotrain = pygame.transform.scale(pygame.image.load('metrotrain.png'), (80, 80))
+    screen.blit(metrotrain, (40, 15))
+    vlinetrain = pygame.transform.scale(pygame.image.load('vlinetrain.png'), (80, 80))
+    screen.blit(vlinetrain, (530, 15))
+
+    # enter button
+    enterbutton = pygame.Rect(530, 130, 100, 35)
+    if enterbuttonpressed:
+        enterbuttoncolour = (110, 110, 110)
+    else:
+        enterbuttoncolour = (90, 90, 90)
+    pygame.draw.rect(screen, enterbuttoncolour, enterbutton, border_radius = 5)
+    enterbuttonsurface = mainfont.render('Enter', True, (255, 255, 255))
+    screen.blit(enterbuttonsurface, enterbuttonsurface.get_rect(center = (enterbutton.centerx, enterbutton.centery + 2)))
+
+    # input box with placeholder text and blinking cursor
+    pygame.draw.rect(screen, (90, 90, 90), (20, 130, 490, 35), border_radius = 5)
+    if inputtext == '':
+        guesssurface = mainfont.render('Guess:', True, (255, 255, 255))
+        screen.blit(guesssurface, (30, 141))
+        if inputactive and cursorvisible and not completed:
+            pygame.draw.line(screen, (255, 255, 255), (30, 139), (30, 155), 2)
+    else:
+        inputsurface = mainfont.render(f'{inputtext}', True, (255, 255, 255))
+        screen.blit(inputsurface, (30, 141))
+        if inputactive and cursorvisible and not completed:
+            pygame.draw.line(screen, (255, 255, 255), (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
     if pygame.time.get_ticks() - cursortimer > 500:
         cursorvisible = not cursorvisible
         cursortimer = pygame.time.get_ticks()
@@ -198,16 +227,16 @@ while True:
     # popup for error inputs
     if popupmsg and pygame.time.get_ticks() < popuptimer:
         popupsurface = mainfont.render(popupmsg, True, (255, 80, 80))
-        screen.blit(popupsurface, ((width // 2) - popupsurface.get_width() // 2, 141))
+        screen.blit(popupsurface, (270 - popupsurface.get_width() // 2, 141))
 
-    # render output table header
+    # output table header
     if outputtext and '|' in outputtext[0]:
         for i, col in enumerate(cols):
             tableheader = mainfont.render(col, True, (255, 255, 255))
             screen.blit(tableheader, (pos[i], 190))
         pygame.draw.line(screen, (255, 255, 255), (30, 210), (620, 210), 1)
 
-    # render output table lines
+    # output table lines
     for i, line in enumerate(outputtext):
         h = 220 + i * 35
 
@@ -245,7 +274,7 @@ while True:
         else:
             
             if len(guesses) == 1:
-                h = h - 30
+                h = h - 35
 
             victorysurface = mainfont.render(line, True, (100, 255, 100))
             screen.blit(victorysurface, ((width // 2) - victorysurface.get_width() // 2, h))
@@ -256,7 +285,7 @@ while True:
                 copybuttoncolour = (70, 100, 70)
             else:
                 copybuttoncolour = (80, 120, 80)
-            pygame.draw.rect(screen, copybuttoncolour, copybutton, border_radius = 0)
+            pygame.draw.rect(screen, copybuttoncolour, copybutton, border_radius = 5)
             buttonsurface = mainfont.render('Copy', True, (255, 255, 255))
             screen.blit(buttonsurface, buttonsurface.get_rect(center = copybutton.center))
 
