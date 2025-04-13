@@ -4,8 +4,15 @@ import json
 import random
 import math
 import datetime
-import pyperclip
+import js
 import asyncio
+
+# function to copy text to clipboard
+def copyclipboard(text):
+    
+    # use browser js
+    promise = js.navigator.clipboard.writeText(text)
+    promise.then(lambda _: print("Text copied to clipboard!")).catch(lambda err: print("Error:", err))
 
 # function to calculate distance and direction between two sets of geographic coordinates
 def distdire(lat1, lon1, lat2, lon2):
@@ -173,12 +180,12 @@ async def main():
 
                     # create text
                     if len(guesses) == 1:
-                        text = f'🚇 VicRaile {datetime.date.today().strftime("%d/%m/%y")} 🚇\nI found the mystery station in 1 guess! 🎉🎉🎉\nhttp://upcomingwebsiteurl.yippee/'
+                        text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in 1 guess!\nhttp://upcomingwebsiteurl.yippee/'
                     else:
-                        text = f'🚇 VicRaile {datetime.date.today().strftime("%d/%m/%y")} 🚇\nI found the mystery station in {len(guesses)} guesses! 🎉🎉🎉\nhttp://upcomingwebsiteurl.yippee/'
+                        text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in {len(guesses)} guesses!\nhttp://upcomingwebsiteurl.yippee/'
 
                     # add to clipboard
-                    pyperclip.copy(text)
+                    copyclipboard(text)
                 
                 copybuttonpressed = False
                 
