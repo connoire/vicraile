@@ -5,14 +5,6 @@ import random
 import math
 import datetime
 import asyncio
-import js
-
-# function to copy text to clipboard
-def copyclipboard(text):
-    
-    # use browser js
-    promise = js.navigator.clipboard.writeText(text)
-    promise.then(lambda _: print("Text copied to clipboard!")).catch(lambda err: print("Error:", err))
 
 # function to calculate distance and direction between two sets of geographic coordinates
 def distdire(lat1, lon1, lat2, lon2):
@@ -123,7 +115,7 @@ async def main():
     popupmsg = None
     popuptimer = 0
     pos = [30]
-    for w in [160, 100, 120, 120, 60][:-1]:
+    for w in [170, 100, 120, 120, 60][:-1]:
         pos.append(pos[-1] + w + 10)
     enterbutton = None
     enterbuttonpressed = False
@@ -213,8 +205,18 @@ async def main():
                         text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in {len(guesses)} guesses!\nhttp://upcomingwebsiteurl.yippee/'
 
                     # add to clipboard
-                    copyclipboard(text)
-                
+                    try:
+
+                        # use js in browser
+                        import js
+                        promise = js.navigator.clipboard.writeText(text)
+
+                    except:
+
+                        # otherwise use pyperclip in desktop
+                        import pyperclip
+                        pyperclip.copy(text)
+
                 copybuttonpressed = False
                 
                 # enter button
@@ -288,10 +290,10 @@ async def main():
 
         # output table header
         if outputtext and not 'win' in outputtext[0]:
-            for i, col in enumerate(['Guess', 'Distance', 'Patronage', 'Type', 'Line']):
+            for i, col in enumerate(['Name', 'Distance', 'Patronage', 'Type', 'Line']):
                 tableheader = mainfont.render(col, True, (255, 255, 255))
                 screen.blit(tableheader, (pos[i], 170))
-            pygame.draw.line(screen, (255, 255, 255), (30, 200), (620, 200), 1)
+            pygame.draw.line(screen, (255, 255, 255), (20, 200), (630, 200), 1)
 
         # output table lines
         for i, result in enumerate(outputtext):
@@ -316,7 +318,7 @@ async def main():
                 screen.blit(emojis[result['typeemoji']], (pos[3] + 90, h))
 
                 # line
-                screen.blit(emojis[result['line']], (pos[4], h))
+                screen.blit(emojis[result['line']], (pos[4] + 3, h))
 
             # win message
             else:
