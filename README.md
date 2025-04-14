@@ -9,3 +9,4 @@ Station Type and Line data manually compiled from current Victorian train networ
 
 Icons:
 - https://discover.data.vic.gov.au/dataset/transport-pictograms
+- https://icons8.com/icons

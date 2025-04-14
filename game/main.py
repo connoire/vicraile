@@ -4,8 +4,8 @@ import json
 import random
 import math
 import datetime
-import js
 import asyncio
+import js
 
 # function to copy text to clipboard
 def copyclipboard(text):
@@ -29,7 +29,7 @@ def distdire(lat1, lon1, lat2, lon2):
     # bearing
     x = math.sin(dlon) * math.cos(rlat2)
     y = math.cos(rlat1) * math.sin(rlat2) - math.sin(rlat1) * math.cos(rlat2) * math.cos(dlon)
-    direction = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'][round((math.degrees(math.atan2(x, y)) + 360) % 360 / 45) % 8]
+    direction = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'][round((math.degrees(math.atan2(x, y)) + 360) % 360 / 45) % 8]
 
     return distance, direction
 
@@ -44,40 +44,49 @@ def compare(guess, mystery, data, guesses):
         else:
             msg = f'You found the mystery station {guess} in {len(guesses)} guesses!'
 
-        return msg, True
+        return {'win': msg}, True
     
     else:
         guess = [i for i in data if i['Name'] == guess][0]
 
         # distance and direction
-        dist, dire = distdire(guess['Lat'], guess['Long'], mystery['Lat'], mystery['Long'])
+        distance, direction = distdire(guess['Lat'], guess['Long'], mystery['Lat'], mystery['Long'])
         
         # patronage
         if guess['Patronage'] > mystery['Patronage']:
-            patronage = '🔻'
+            patronageemoji = 'down'
         elif guess['Patronage'] < mystery['Patronage']:
-            patronage = '🔺'
+            patronageemoji = 'up'
         else:
-            patronage = '🟩'
+            patronageemoji = 'equals'
 
         # type
         if guess['Type'] == mystery['Type']:
-            typ = '🟩'
+            typeemoji = 'green'
         else:
-            typ = '🟥'
+            typeemoji = 'red'
 
         # line
         if set(guess['Line']) & set(mystery['Line']):
-            line = '🟩'
+            line = 'green'
         elif set(guess['Group']) & set(mystery['Group']):
-            line = '🟨'
+            line = 'yellow'
         else:
-            line = '🟥'
+            line = 'red'
 
-        # print comparison
-        msg = f"{guess['Name']}|{dist:.1f}km|{dire}|{guess['Patronage']:,.0f}|{patronage}|{guess['Type']}|{typ}|{line}"
+        # return result
+        result = {
+            'name': guess['Name'], 
+            'distance': f'{distance:.1f}km', 
+            'direction': direction, 
+            'patronage': f'{guess["Patronage"]:,.0f}', 
+            'patronageemoji': patronageemoji, 
+            'type': guess['Type'], 
+            'typeemoji': typeemoji, 
+            'line': line
+        }
 
-        return msg, False
+        return result, False
 
 async def main():
 
@@ -91,8 +100,8 @@ async def main():
     pygame.display.update()
 
     # set fonts
-    titlefont = pygame.font.Font('./assets/SCRIPTBL.TTF', 40)
-    mainfont = pygame.font.Font('./assets/seguiemj.ttf', 16)
+    titlefont = pygame.font.Font('./assets/scriptbl.ttf', 40)
+    mainfont = pygame.font.Font('./assets/segoeui.ttf', 16)
     pygame.key.set_repeat(500, 30)
 
     # read data
@@ -113,14 +122,33 @@ async def main():
     completed = False
     popupmsg = None
     popuptimer = 0
-    cols = ['Guess', 'Distance', 'Patronage', 'Type', 'Line']
     pos = [30]
-    for w in [160, 120, 120, 120, 60][:-1]:
+    for w in [160, 100, 120, 120, 60][:-1]:
         pos.append(pos[-1] + w + 10)
     enterbutton = None
     enterbuttonpressed = False
     copybutton = None
     copybuttonpressed = False
+
+    # load emoji images
+    emojis = {
+        'n': pygame.image.load('./assets/n.png').convert_alpha(), 
+        'ne': pygame.image.load('./assets/ne.png').convert_alpha(), 
+        'e': pygame.image.load('./assets/e.png').convert_alpha(), 
+        'se': pygame.image.load('./assets/se.png').convert_alpha(), 
+        's': pygame.image.load('./assets/s.png').convert_alpha(), 
+        'sw': pygame.image.load('./assets/sw.png').convert_alpha(), 
+        'w': pygame.image.load('./assets/w.png').convert_alpha(), 
+        'nw': pygame.image.load('./assets/nw.png').convert_alpha(), 
+        'up': pygame.image.load('./assets/up.png').convert_alpha(), 
+        'down': pygame.image.load('./assets/down.png').convert_alpha(), 
+        'equals': pygame.image.load('./assets/equals.png').convert_alpha(), 
+        'red': pygame.image.load('./assets/red.png').convert_alpha(), 
+        'yellow': pygame.image.load('./assets/yellow.png').convert_alpha(), 
+        'green': pygame.image.load('./assets/green.png').convert_alpha()
+    }
+    for key in emojis:
+        emojis[key] = pygame.transform.scale(emojis[key], (24, 24))
 
     # gameplay loop
     while True:
@@ -136,9 +164,9 @@ async def main():
         subtitlesurface = mainfont.render('Guess the Mystery Victorian Railway Station', True, (255, 255, 255))
         subtitlerect = subtitlesurface.get_rect(center = (width // 2, 85))
         screen.blit(subtitlesurface, subtitlerect)
-        metrotrain = pygame.transform.scale(pygame.image.load('./assets/metrotrain.png'), (80, 80))
+        metrotrain = pygame.transform.scale(pygame.image.load('./assets/metro.png'), (80, 80))
         screen.blit(metrotrain, (40, 15))
-        vlinetrain = pygame.transform.scale(pygame.image.load('./assets/vlinetrain.png'), (80, 80))
+        vlinetrain = pygame.transform.scale(pygame.image.load('./assets/vline.png'), (80, 80))
         screen.blit(vlinetrain, (530, 15))
 
         # enter button
@@ -149,7 +177,7 @@ async def main():
             enterbuttoncolour = (90, 90, 90)
         pygame.draw.rect(screen, enterbuttoncolour, enterbutton, border_radius = 5)
         enterbuttonsurface = mainfont.render('Enter', True, (255, 255, 255))
-        screen.blit(enterbuttonsurface, enterbuttonsurface.get_rect(center = (enterbutton.centerx, enterbutton.centery + 2)))
+        screen.blit(enterbuttonsurface, enterbuttonsurface.get_rect(center = (enterbutton.centerx, enterbutton.centery)))
 
         # input detection
         for event in pygame.event.get():
@@ -219,11 +247,11 @@ async def main():
                         # valid guess
                         else:
                             guesses.append(inputtext)
-                            msg, result = compare(inputtext, mystery, data, guesses)
-                            outputtext.append(msg)
+                            dict, correct = compare(inputtext, mystery, data, guesses)
+                            outputtext.append(dict)
 
                             # check for correct guess
-                            if result:
+                            if correct:
                                 completed = True
                         
                         # reset input text
@@ -241,12 +269,12 @@ async def main():
         pygame.draw.rect(screen, (90, 90, 90), (20, 130, 490, 35), border_radius = 5)
         if inputtext == '':
             guesssurface = mainfont.render('Guess:', True, (255, 255, 255))
-            screen.blit(guesssurface, (30, 141))
+            screen.blit(guesssurface, (30, 136))
             if inputactive and cursorvisible and not completed:
                 pygame.draw.line(screen, (255, 255, 255), (30, 139), (30, 155), 2)
         else:
             inputsurface = mainfont.render(f'{inputtext}', True, (255, 255, 255))
-            screen.blit(inputsurface, (30, 141))
+            screen.blit(inputsurface, (30, 136))
             if inputactive and cursorvisible and not completed:
                 pygame.draw.line(screen, (255, 255, 255), (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
         if pygame.time.get_ticks() - cursortimer > 500:
@@ -259,57 +287,48 @@ async def main():
             screen.blit(popupsurface, (270 - popupsurface.get_width() // 2, 141))
 
         # output table header
-        if outputtext and '|' in outputtext[0]:
-            for i, col in enumerate(cols):
+        if outputtext and not 'win' in outputtext[0]:
+            for i, col in enumerate(['Guess', 'Distance', 'Patronage', 'Type', 'Line']):
                 tableheader = mainfont.render(col, True, (255, 255, 255))
-                screen.blit(tableheader, (pos[i], 190))
-            pygame.draw.line(screen, (255, 255, 255), (30, 210), (620, 210), 1)
+                screen.blit(tableheader, (pos[i], 170))
+            pygame.draw.line(screen, (255, 255, 255), (30, 200), (620, 200), 1)
 
         # output table lines
-        for i, line in enumerate(outputtext):
-            h = 220 + i * 35
+        for i, result in enumerate(outputtext):
+            h = 205 + i * 30
 
             # wrong guess information
-            if '|' in line:
-                split = line.split('|')
-                name = split[0]
-                distance = split[1]
-                direction = split[2]
-                patronage = split[3]
-                patronageemoji = split[4]
-                typ = split[5]
-                typemoji = split[6]
-                line = split[7]
+            if 'win' not in result:
 
                 # name
-                screen.blit(mainfont.render(name, True, (255, 255, 255)), (pos[0], h))
+                screen.blit(mainfont.render(result['name'], True, (255, 255, 255)), (pos[0], h))
 
                 # distance/direction
-                screen.blit(mainfont.render(distance.strip(), True, (255, 255, 255)), (pos[1], h))
-                screen.blit(mainfont.render(direction.strip(), True, (255, 255, 255)), (pos[1] + 70, h))
+                screen.blit(mainfont.render(result['distance'], True, (255, 255, 255)), (pos[1], h))
+                screen.blit(emojis[result['direction']], (pos[1] + 70, h))
 
                 # patronage
-                screen.blit(mainfont.render(patronage.strip(), True, (255, 255, 255)), (pos[2], h))
-                screen.blit(mainfont.render(patronageemoji.strip(), True, (255, 255, 255)), (pos[2] + 90, h))
+                screen.blit(mainfont.render(result['patronage'], True, (255, 255, 255)), (pos[2], h))
+                screen.blit(emojis[result['patronageemoji']], (pos[2] + 90, h))
 
                 # type
-                screen.blit(mainfont.render(typ.strip(), True, (255, 255, 255)), (pos[3], h))
-                screen.blit(mainfont.render(typemoji.strip(), True, (255, 255, 255)), (pos[3] + 90, h))
+                screen.blit(mainfont.render(result['type'], True, (255, 255, 255)), (pos[3], h))
+                screen.blit(emojis[result['typeemoji']], (pos[3] + 90, h))
 
                 # line
-                screen.blit(mainfont.render(line.strip(), True, (255, 255, 255)), (pos[4] + 5, h))
+                screen.blit(emojis[result['line']], (pos[4], h))
 
             # win message
             else:
                 
                 if len(guesses) == 1:
-                    h = h - 35
+                    h = h - 25
 
-                victorysurface = mainfont.render(line, True, (100, 255, 100))
+                victorysurface = mainfont.render(result['win'], True, (100, 255, 100))
                 screen.blit(victorysurface, ((width // 2) - victorysurface.get_width() // 2, h))
                 
                 # copy button
-                copybutton = pygame.Rect(width // 2 - 50, h + 30, 100, 40)
+                copybutton = pygame.Rect(width // 2 - 50, h + 35, 100, 40)
                 if copybuttonpressed:
                     copybuttoncolour = (70, 100, 70)
                 else:
