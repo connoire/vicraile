@@ -201,9 +201,9 @@ async def main():
 
                     # create text
                     if len(guesses) == 1:
-                        text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in 1 guess!\nhttp://upcomingwebsiteurl.yippee/'
+                        text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in 1 guess!\nhttps://connoire.github.io/vicraile/'
                     else:
-                        text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in {len(guesses)} guesses!\nhttp://upcomingwebsiteurl.yippee/'
+                        text = f'VicRaile {datetime.date.today().strftime("%d/%m/%y")}\nI found the mystery station in {len(guesses)} guesses!\nhttps://connoire.github.io/vicraile/'
 
                     # add to clipboard
                     try:
