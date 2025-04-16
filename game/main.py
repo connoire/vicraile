@@ -84,9 +84,10 @@ async def main():
 
     # initialise game
     pygame.init()
+    clock = pygame.time.Clock()
 
     # setup display
-    width, height = 650, 1000
+    width, height = 650, 900
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption('VicRaile')
     pygame.display.update()
@@ -164,7 +165,7 @@ async def main():
         # enter button
         enterbutton = pygame.Rect(530, 130, 100, 35)
         if enterbuttonpressed:
-            enterbuttoncolour = (110, 110, 110)
+            enterbuttoncolour = (80, 80, 80)
         else:
             enterbuttoncolour = (90, 90, 90)
         pygame.draw.rect(screen, enterbuttoncolour, enterbutton, border_radius = 5)
@@ -286,7 +287,7 @@ async def main():
         # popup for error inputs
         if popupmsg and pygame.time.get_ticks() < popuptimer:
             popupsurface = mainfont.render(popupmsg, True, (255, 80, 80))
-            screen.blit(popupsurface, (270 - popupsurface.get_width() // 2, 141))
+            screen.blit(popupsurface, (270 - popupsurface.get_width() // 2, 136))
 
         # output table header
         if outputtext and not 'win' in outputtext[0]:
@@ -337,10 +338,11 @@ async def main():
                     copybuttoncolour = (80, 120, 80)
                 pygame.draw.rect(screen, copybuttoncolour, copybutton, border_radius = 5)
                 buttonsurface = mainfont.render('Copy', True, (255, 255, 255))
-                screen.blit(buttonsurface, buttonsurface.get_rect(center = copybutton.center))
+                screen.blit(buttonsurface, buttonsurface.get_rect(centerx = copybutton.centerx, centery = copybutton.centery - 2))
 
         pygame.display.flip()
 
+        clock.tick(60)
         await asyncio.sleep(0)
 
 asyncio.run(main())
