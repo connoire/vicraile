@@ -54,9 +54,9 @@ def compare(guess, mystery, data, guesses):
 
         # type
         if guess['Type'] == mystery['Type']:
-            typeemoji = 'green'
+            typeemoji = 'tick'
         else:
-            typeemoji = 'red'
+            typeemoji = 'cross'
 
         # line
         if set(guess['Line']) & set(mystery['Line']):
@@ -90,6 +90,8 @@ async def main():
     width, height = 650, 900
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption('VicRaile')
+    icon = pygame.image.load('./assets/train.png')
+    pygame.display.set_icon(icon)
     pygame.display.update()
 
     # set fonts
@@ -123,6 +125,16 @@ async def main():
     copybutton = None
     copybuttonpressed = False
 
+    # colours
+    white = (255, 255, 255)
+    grey = (52, 52, 52)
+    greylight = (90, 90, 90)
+    greydark = (35, 35, 35)
+    greylightdark = (70, 70, 70)
+    red = (255, 90, 90)
+    green = (100, 180, 100)
+    greendark = (80, 160, 80)
+
     # load emoji images
     emojis = {
         'n': pygame.image.load('./assets/n.png').convert_alpha(), 
@@ -136,6 +148,8 @@ async def main():
         'up': pygame.image.load('./assets/up.png').convert_alpha(), 
         'down': pygame.image.load('./assets/down.png').convert_alpha(), 
         'equals': pygame.image.load('./assets/equals.png').convert_alpha(), 
+        'tick': pygame.image.load('./assets/tick.png').convert_alpha(), 
+        'cross': pygame.image.load('./assets/cross.png').convert_alpha(), 
         'red': pygame.image.load('./assets/red.png').convert_alpha(), 
         'yellow': pygame.image.load('./assets/yellow.png').convert_alpha(), 
         'green': pygame.image.load('./assets/green.png').convert_alpha()
@@ -147,29 +161,29 @@ async def main():
     while True:
 
         # visuals
-        screen.fill((52, 52, 52))
+        screen.fill(grey)
 
         # header
-        pygame.draw.rect(screen, (40, 40, 40), (0, 0, width, 110))
-        titlesurface = titlefont.render('VicRaile', True, (255, 255, 255))
+        pygame.draw.rect(screen, greydark, (0, 0, width, 110))
+        titlesurface = titlefont.render('VicRaile', True, white)
         titlerect = titlesurface.get_rect(center = (width // 2, 40))
         screen.blit(titlesurface, titlerect)
-        subtitlesurface = mainfont.render('Guess the Mystery Victorian Railway Station', True, (255, 255, 255))
+        subtitlesurface = mainfont.render('Guess the Mystery Victorian Railway Station', True, white)
         subtitlerect = subtitlesurface.get_rect(center = (width // 2, 85))
         screen.blit(subtitlesurface, subtitlerect)
         metrotrain = pygame.transform.scale(pygame.image.load('./assets/metro.png'), (80, 80))
-        screen.blit(metrotrain, (40, 15))
+        screen.blit(metrotrain, (60, 15))
         vlinetrain = pygame.transform.scale(pygame.image.load('./assets/vline.png'), (80, 80))
-        screen.blit(vlinetrain, (530, 15))
+        screen.blit(vlinetrain, (510, 15))
 
         # enter button
         enterbutton = pygame.Rect(530, 130, 100, 35)
         if enterbuttonpressed:
-            enterbuttoncolour = (80, 80, 80)
+            enterbuttoncolour = greylightdark
         else:
-            enterbuttoncolour = (90, 90, 90)
+            enterbuttoncolour = greylight
         pygame.draw.rect(screen, enterbuttoncolour, enterbutton, border_radius = 5)
-        enterbuttonsurface = mainfont.render('Enter', True, (255, 255, 255))
+        enterbuttonsurface = mainfont.render('Enter', True, white)
         screen.blit(enterbuttonsurface, enterbuttonsurface.get_rect(center = (enterbutton.centerx, enterbutton.centery)))
 
         # input detection
@@ -210,11 +224,11 @@ async def main():
 
                         # use js in browser
                         import js
-                        promise = js.navigator.clipboard.writeText(text)
+                        js.navigator.clipboard.writeText(text)
 
                     except:
 
-                        # otherwise use pyperclip in desktop
+                        # use pyperclip in desktop
                         import pyperclip
                         pyperclip.copy(text)
 
@@ -238,8 +252,8 @@ async def main():
                     if inputtext != '':
                     
                         # check if guess is a station
-                        if inputtext not in [list(i.values())[0] for i in data]:
-                            popupmsg = f'{inputtext} is not a valid Victorian Railway Station'
+                        if inputtext.lower() not in [list(i.values())[0].lower() for i in data]:
+                            popupmsg = f'Not a valid Victorian Railway Station'
                             popuptimer = pygame.time.get_ticks() + 2000
 
                         # check if guess is not already guessed
@@ -249,8 +263,13 @@ async def main():
                         
                         # valid guess
                         else:
-                            guesses.append(inputtext)
-                            dict, correct = compare(inputtext, mystery, data, guesses)
+
+                            # correct capitalisation
+                            guess = next(list(i.values())[0] for i in data if list(i.values())[0].lower() == inputtext.lower())
+                            guesses.append(guess)
+
+                            # compare guess
+                            dict, correct = compare(guess, mystery, data, guesses)
                             outputtext.append(dict)
 
                             # check for correct guess
@@ -266,56 +285,59 @@ async def main():
 
                 # other keys add to input
                 else:
-                    inputtext += event.unicode
+
+                    # check if key will make text too long
+                    if mainfont.size(inputtext + event.unicode)[0] < 470:
+                        inputtext += event.unicode
 
         # input box with placeholder text and blinking cursor
-        pygame.draw.rect(screen, (90, 90, 90), (20, 130, 490, 35), border_radius = 5)
+        pygame.draw.rect(screen, greylight, (20, 130, 490, 35), border_radius = 5)
         if inputtext == '':
-            guesssurface = mainfont.render('Guess:', True, (255, 255, 255))
+            guesssurface = mainfont.render('Guess:', True, white)
             screen.blit(guesssurface, (30, 136))
             if inputactive and cursorvisible and not completed:
-                pygame.draw.line(screen, (255, 255, 255), (30, 139), (30, 155), 2)
+                pygame.draw.line(screen, white, (30, 139), (30, 155), 2)
         else:
-            inputsurface = mainfont.render(f'{inputtext}', True, (255, 255, 255))
+            inputsurface = mainfont.render(f'{inputtext}', True, white)
             screen.blit(inputsurface, (30, 136))
             if inputactive and cursorvisible and not completed:
-                pygame.draw.line(screen, (255, 255, 255), (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
+                pygame.draw.line(screen, white, (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
         if pygame.time.get_ticks() - cursortimer > 500:
             cursorvisible = not cursorvisible
             cursortimer = pygame.time.get_ticks()
 
-        # popup for error inputs
+        # error input popup
         if popupmsg and pygame.time.get_ticks() < popuptimer:
-            popupsurface = mainfont.render(popupmsg, True, (255, 80, 80))
-            screen.blit(popupsurface, (270 - popupsurface.get_width() // 2, 136))
+            popupsurface = mainfont.render(popupmsg, True, red)
+            screen.blit(popupsurface, ((width - popupsurface.get_width()) // 2, 136))
 
         # output table header
         if outputtext and not 'win' in outputtext[0]:
             for i, col in enumerate(['Name', 'Distance', 'Patronage', 'Type', 'Line']):
-                tableheader = mainfont.render(col, True, (255, 255, 255))
-                screen.blit(tableheader, (pos[i], 170))
-            pygame.draw.line(screen, (255, 255, 255), (20, 200), (630, 200), 1)
+                tableheader = mainfont.render(col, True, white)
+                screen.blit(tableheader, (pos[i], 180))
+            pygame.draw.line(screen, white, (20, 210), (630, 210), 1)
 
         # output table lines
         for i, result in enumerate(outputtext):
-            h = 205 + i * 30
+            h = 215 + i * 30
 
             # wrong guess information
             if 'win' not in result:
 
                 # name
-                screen.blit(mainfont.render(result['name'], True, (255, 255, 255)), (pos[0], h))
+                screen.blit(mainfont.render(result['name'], True, white), (pos[0], h))
 
                 # distance/direction
-                screen.blit(mainfont.render(result['distance'], True, (255, 255, 255)), (pos[1], h))
+                screen.blit(mainfont.render(result['distance'], True, white), (pos[1], h))
                 screen.blit(emojis[result['direction']], (pos[1] + 70, h))
 
                 # patronage
-                screen.blit(mainfont.render(result['patronage'], True, (255, 255, 255)), (pos[2], h))
+                screen.blit(mainfont.render(result['patronage'], True, white), (pos[2], h))
                 screen.blit(emojis[result['patronageemoji']], (pos[2] + 90, h))
 
                 # type
-                screen.blit(mainfont.render(result['type'], True, (255, 255, 255)), (pos[3], h))
+                screen.blit(mainfont.render(result['type'], True, white), (pos[3], h))
                 screen.blit(emojis[result['typeemoji']], (pos[3] + 90, h))
 
                 # line
@@ -325,19 +347,19 @@ async def main():
             else:
                 
                 if len(guesses) == 1:
-                    h = h - 25
+                    h = h - 30
 
-                victorysurface = mainfont.render(result['win'], True, (100, 255, 100))
-                screen.blit(victorysurface, ((width // 2) - victorysurface.get_width() // 2, h))
+                victorysurface = mainfont.render(result['win'], True, green)
+                screen.blit(victorysurface, ((width // 2) - victorysurface.get_width() // 2, h + 5))
                 
                 # copy button
-                copybutton = pygame.Rect(width // 2 - 50, h + 35, 100, 40)
+                copybutton = pygame.Rect(width // 2 - 50, h + 40, 100, 40)
                 if copybuttonpressed:
-                    copybuttoncolour = (70, 100, 70)
+                    copybuttoncolour = greendark
                 else:
-                    copybuttoncolour = (80, 120, 80)
+                    copybuttoncolour = green
                 pygame.draw.rect(screen, copybuttoncolour, copybutton, border_radius = 5)
-                buttonsurface = mainfont.render('Copy', True, (255, 255, 255))
+                buttonsurface = mainfont.render('Copy', True, white)
                 screen.blit(buttonsurface, buttonsurface.get_rect(centerx = copybutton.centerx, centery = copybutton.centery - 2))
 
         pygame.display.flip()
