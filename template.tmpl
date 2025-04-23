@@ -120,7 +120,8 @@ async def custom_site():
 
         pygame.draw.rect(screen,(10,10,10),( marginx-ux(10), marginy-uy(10), (total*slot)+ux(20), uy(110) ) )
         pygame.draw.rect(screen,(0,255,0), ( marginx, marginy, track.pos*slot, uy(90)) )
-
+        
+    pg_bar = lambda pos: None
     # wait until zip mount + overlayfs is complete
     while not track.ready:
         pg_bar(track.pos)
@@ -289,7 +290,10 @@ config = {
             font-family: arial;
             margin: 0;
             padding: none;
-            background-color:powderblue;
+            background-color:rgb(52, 52, 52);
+        }
+        #transfer {
+            display: none;
         }
 
         .topright{
@@ -329,6 +333,10 @@ config = {
 </head>
 
 <body>
+
+    <script>
+        window.onbeforeunload = null;
+    </script>
 
     <div id="transfer" align=center>
 <!--        <div class="spinner" id='spinner'></div> -->

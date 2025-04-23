@@ -90,7 +90,7 @@ async def main():
     width, height = 650, 900
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption('VicRaile')
-    icon = pygame.image.load('./assets/train.png')
+    icon = pygame.image.load('./train.png')
     pygame.display.set_icon(icon)
     pygame.display.update()
 
@@ -257,7 +257,7 @@ async def main():
                             popuptimer = pygame.time.get_ticks() + 2000
 
                         # check if guess is not already guessed
-                        elif inputtext in guesses:
+                        elif inputtext.lower() in [i.lower() for i in guesses]:
                             popupmsg = 'You have already guessed this station'
                             popuptimer = pygame.time.get_ticks() + 2000
                         
