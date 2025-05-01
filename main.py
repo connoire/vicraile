@@ -103,13 +103,9 @@ async def main():
     with open('stationdata.json', 'r') as f:
         data = json.load(f)
 
-    # pick mystery station
-    random.seed(int(str(datetime.date.today()).replace('-', '')))
-    mystery = random.choice(data)
-
     # initialise game states
     inputtext = ''
-    inputactive = True
+    inputactive = False
     cursortimer = 0
     cursorvisible = False
     guesses = []
@@ -120,10 +116,17 @@ async def main():
     pos = [30]
     for w in [170, 100, 120, 120, 60][:-1]:
         pos.append(pos[-1] + w + 10)
+    modechosen = False
+    dailybutton = None
+    dailybuttonpressed = False
+    randombutton = None
+    randombuttonpressed = False
     enterbutton = None
     enterbuttonpressed = False
     copybutton = None
     copybuttonpressed = False
+    playagainbutton = None
+    playagainbuttonpressed = False
 
     # colours
     white = (255, 255, 255)
@@ -160,7 +163,7 @@ async def main():
     # gameplay loop
     while True:
 
-        # visuals
+        # background
         screen.fill(grey)
 
         # header
@@ -176,21 +179,19 @@ async def main():
         vlinetrain = pygame.transform.scale(pygame.image.load('./assets/vline.png'), (80, 80))
         screen.blit(vlinetrain, (510, 15))
 
-        # enter button
-        enterbutton = pygame.Rect(530, 130, 100, 35)
-        if enterbuttonpressed:
-            enterbuttoncolour = greylightdark
-        else:
-            enterbuttoncolour = greylight
-        pygame.draw.rect(screen, enterbuttoncolour, enterbutton, border_radius = 5)
-        enterbuttonsurface = mainfont.render('Enter', True, white)
-        screen.blit(enterbuttonsurface, enterbuttonsurface.get_rect(center = (enterbutton.centerx, enterbutton.centery)))
-
         # input detection
         for event in pygame.event.get():
 
             # downclick
             if event.type == pygame.MOUSEBUTTONDOWN:
+
+                # daily button
+                if not modechosen and dailybutton and dailybutton.collidepoint(event.pos):
+                    dailybuttonpressed = True
+                
+                # random button
+                if not modechosen and randombutton and randombutton.collidepoint(event.pos):
+                    randombuttonpressed = True
 
                 # input box
                 if 20 <= event.pos[0] and event.pos[0] <= 630 and 130 <= event.pos[1] and event.pos[1] <= 165 and not completed:
@@ -203,13 +204,40 @@ async def main():
                     copybuttonpressed = True
 
                 # enter button
-                if enterbutton.collidepoint(event.pos):
-                    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_RETURN}))
+                if enterbutton and enterbutton.collidepoint(event.pos):
                     enterbuttonpressed = True
+
+                # play again button
+                if completed and playagainbutton and playagainbutton.collidepoint(event.pos):
+                    playagainbuttonpressed = True
 
             # upclick
             elif event.type == pygame.MOUSEBUTTONUP:
                 
+                # daily button
+                if not modechosen and dailybutton and dailybutton.collidepoint(event.pos) and dailybuttonpressed:
+                    
+                    # pick mystery
+                    random.seed(int(str(datetime.date.today()).replace('-', '')))
+                    mystery = random.choice(data)
+
+                    modechosen = 'daily'
+                    dailybutton = None
+                    randombutton = None
+                    inputactive = True
+                
+                # random button
+                if not modechosen and randombutton and randombutton.collidepoint(event.pos) and randombuttonpressed:
+
+                    # pick mystery
+                    random.seed()
+                    mystery = random.choice(data)
+
+                    modechosen = 'random'
+                    dailybutton = None
+                    randombutton = None
+                    inputactive = True
+
                 # copy button
                 if completed and copybutton and copybutton.collidepoint(event.pos) and copybuttonpressed:
 
@@ -232,10 +260,44 @@ async def main():
                         import pyperclip
                         pyperclip.copy(text)
 
-                copybuttonpressed = False
-                
                 # enter button
+                if enterbutton and enterbutton.collidepoint(event.pos) and enterbuttonpressed:
+                    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {'key': pygame.K_RETURN}))
+
+                # play again button
+                if completed and playagainbutton and playagainbutton.collidepoint(event.pos) and playagainbuttonpressed:
+                    
+                    # reinitialise game states
+                    inputtext = ''
+                    inputactive = False
+                    cursortimer = 0
+                    cursorvisible = False
+                    guesses = []
+                    outputtext = []
+                    completed = False
+                    popupmsg = None
+                    popuptimer = 0
+                    pos = [30]
+                    for w in [170, 100, 120, 120, 60][:-1]:
+                        pos.append(pos[-1] + w + 10)
+                    modechosen = False
+                    dailybutton = None
+                    dailybuttonpressed = False
+                    randombutton = None
+                    randombuttonpressed = False
+                    enterbutton = None
+                    enterbuttonpressed = False
+                    copybutton = None
+                    copybuttonpressed = False
+                    playagainbutton = None
+                    playagainbuttonpressed = False
+            
+                # unclick buttons
+                dailybuttonpressed = False
+                randombuttonpressed = False
+                copybuttonpressed = False
                 enterbuttonpressed = False
+                playagainbuttonpressed = False
 
             # quit game
             elif event.type == pygame.QUIT:
@@ -290,21 +352,57 @@ async def main():
                     if mainfont.size(inputtext + event.unicode)[0] < 470:
                         inputtext += event.unicode
 
-        # input box with placeholder text and blinking cursor
-        pygame.draw.rect(screen, greylight, (20, 130, 490, 35), border_radius = 5)
-        if inputtext == '':
-            guesssurface = mainfont.render('Guess:', True, white)
-            screen.blit(guesssurface, (30, 136))
-            if inputactive and cursorvisible and not completed:
-                pygame.draw.line(screen, white, (30, 139), (30, 155), 2)
-        else:
-            inputsurface = mainfont.render(f'{inputtext}', True, white)
-            screen.blit(inputsurface, (30, 136))
-            if inputactive and cursorvisible and not completed:
-                pygame.draw.line(screen, white, (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
-        if pygame.time.get_ticks() - cursortimer > 500:
-            cursorvisible = not cursorvisible
-            cursortimer = pygame.time.get_ticks()
+        # gamemode choice buttons
+        if not modechosen:
+
+            # daily button
+            dailybutton = pygame.Rect(175, 130, 100, 35)
+            if dailybuttonpressed:
+                dailybuttoncolour = greylightdark
+            else:
+                dailybuttoncolour = greylight
+            pygame.draw.rect(screen, dailybuttoncolour, dailybutton, border_radius = 5)
+            dailybuttonsurface = mainfont.render('Daily', True, white)
+            screen.blit(dailybuttonsurface, dailybuttonsurface.get_rect(center = (dailybutton.centerx, dailybutton.centery)))
+
+            # random button
+            randombutton = pygame.Rect(375, 130, 100, 35)
+            if randombuttonpressed:
+                dailybuttoncolour = greylightdark
+            else:
+                randombuttoncolour = greylight
+            pygame.draw.rect(screen, randombuttoncolour, randombutton, border_radius = 5)
+            randombuttonsurface = mainfont.render('Random', True, white)
+            screen.blit(randombuttonsurface, randombuttonsurface.get_rect(center = (randombutton.centerx, randombutton.centery)))
+
+        # player input line
+        if modechosen:
+
+            # input box with placeholder text and blinking cursor
+            pygame.draw.rect(screen, greylight, (20, 130, 490, 35), border_radius = 5)
+            if inputtext == '':
+                guesssurface = mainfont.render('Guess:', True, white)
+                screen.blit(guesssurface, (30, 136))
+                if inputactive and cursorvisible and not completed:
+                    pygame.draw.line(screen, white, (30, 139), (30, 155), 2)
+            else:
+                inputsurface = mainfont.render(f'{inputtext}', True, white)
+                screen.blit(inputsurface, (30, 136))
+                if inputactive and cursorvisible and not completed:
+                    pygame.draw.line(screen, white, (31 + inputsurface.get_width(), 139), (31 + inputsurface.get_width(), 155), 2)
+            if pygame.time.get_ticks() - cursortimer > 500:
+                cursorvisible = not cursorvisible
+                cursortimer = pygame.time.get_ticks()
+
+            # enter button
+            enterbutton = pygame.Rect(530, 130, 100, 35)
+            if enterbuttonpressed:
+                enterbuttoncolour = greylightdark
+            else:
+                enterbuttoncolour = greylight
+            pygame.draw.rect(screen, enterbuttoncolour, enterbutton, border_radius = 5)
+            enterbuttonsurface = mainfont.render('Enter', True, white)
+            screen.blit(enterbuttonsurface, enterbuttonsurface.get_rect(center = (enterbutton.centerx, enterbutton.centery)))
 
         # error input popup
         if popupmsg and pygame.time.get_ticks() < popuptimer:
@@ -353,14 +451,25 @@ async def main():
                 screen.blit(victorysurface, ((width // 2) - victorysurface.get_width() // 2, h + 5))
                 
                 # copy button
-                copybutton = pygame.Rect(width // 2 - 50, h + 40, 100, 40)
-                if copybuttonpressed:
-                    copybuttoncolour = greendark
+                if modechosen == 'daily':
+                    copybutton = pygame.Rect(width // 2 - 50, h + 95, 100, 40)
+                    if copybuttonpressed:
+                        copybuttoncolour = greendark
+                    else:
+                        copybuttoncolour = green
+                    pygame.draw.rect(screen, copybuttoncolour, copybutton, border_radius = 5)
+                    copybuttonsurface = mainfont.render('Copy', True, white)
+                    screen.blit(copybuttonsurface, copybuttonsurface.get_rect(centerx = copybutton.centerx, centery = copybutton.centery - 2))
+
+                # play again button
+                playagainbutton = pygame.Rect(width // 2 - 50, h + 40, 100, 40)
+                if playagainbuttonpressed:
+                    playagainbuttoncolour = greendark
                 else:
-                    copybuttoncolour = green
-                pygame.draw.rect(screen, copybuttoncolour, copybutton, border_radius = 5)
-                buttonsurface = mainfont.render('Copy', True, white)
-                screen.blit(buttonsurface, buttonsurface.get_rect(centerx = copybutton.centerx, centery = copybutton.centery - 2))
+                    playagainbuttoncolour = green
+                pygame.draw.rect(screen, playagainbuttoncolour, playagainbutton, border_radius = 5)
+                playagainbuttonsurface = mainfont.render('Play Again', True, white)
+                screen.blit(playagainbuttonsurface, playagainbuttonsurface.get_rect(centerx = playagainbutton.centerx, centery = playagainbutton.centery - 2))
 
         pygame.display.flip()
 
